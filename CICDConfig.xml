@@ -1,0 +1,85 @@
+﻿<?xml version="1.0" encoding="cp1252"?>
+<!-- 
+    Continuous integration workflow
+    object notation file.
+-->
+
+
+<!-- Main node. Define all reference words used in the subnodes.
+They will be replaced with the values by the CICDScript.py,
+where referred as {key}. For instance:
+
+Defined <CI wspath=".\workspace">, then
+
+<buildExecutable path="{wspath}\build.bat"/> will be replaced as
+
+<buildExecutable path=".\workspace\build.bat"/>
+-->
+<CI
+repopath="file:///path/to/testrepo"
+wspath="./workspace"
+refpath="./ref"
+deploypath="./deploy"
+outfilename="outfile.txt"
+>
+    <!-- Inside subnodes (build, deploy), these two nodes mentioned below can be defined. They
+         will be processed in the order they defined.
+        :
+         dependency     : this node copy the 'path' to the 'dest'
+         buildExecutable: this node runs the executable in 'path' with defined arguments with
+                          'args'
+    --> 
+    
+
+    <!-- Define build configuration here -->    
+    <build>
+        <!-- 
+        Define dependencies. They will be copied from 'path' to 'dest'
+        Simple glob patterns supported by python 'glob' module can be used
+        on file system paths
+        path: dependency path (filesystem path or VCS URL)
+        dest: copy destination of dependency
+
+        IMPORTANT: It is a good practice to end the 'dest' filesystem path strings with path separator
+                   ('\' or '/') when referring to a directory path. By this way, if the path does
+                   not exist, the parser will understand that it is a directory path, not a
+                   filename without extension, and will create that directory for you before
+                   copying.        
+        -->        
+        <dependency path="{repopath}/base/basetext.txt" dest="{wspath}"/>
+        <dependency path="{refpath}/*.txt" dest="{wspath}"/>
+        
+        <!-- Define build executables to be called here
+        (all of the executables will be run under their
+        path directory as cwd, to avoid relative path errors)
+        path: path of the executable
+        args: argument string
+        -->
+        <buildExecutable path="{wspath}/build.bat" args="basetext.txt reftext.txt {outfilename}"/>
+    </build>
+        
+    <!-- Define deployment configuration here
+    path: filesystem directory path to be archived (.zip) and deployed
+    dest: destination path the archive will be deployed (file path or VCS URL)
+    name: archive name to be deployed. Name can contain datetime/strftime references
+          in Python. 
+          e.g. artifact_%Y%m%d_%H%M%S   -> artifact_20230905_140329
+               artifact_%y%m%d_%I%M%S%p -> artifact_230905_020329PM
+          If there is a package with the same name in the dest path, name will be
+          appended with an incrementing number. Suppose name="artifact":
+               if artifact presents,  artifact -> artifact1
+               if artifact1 presents, artifact -> artifact2
+    -->
+    <deploy
+       path="{deploypath}"
+       dest="{repopath}/artifacts"
+       name="artifact_%y%m%d_%H%M%S"
+    >
+         <!-- Define components to be added to deploy package
+        path: component file/dir path (file path or VCS URL)
+        dest: copy destination file/dir path
+        -->        
+        <dependency path="{wspath}/{outfilename}" dest="{deploypath}/"/>
+    </deploy>
+    
+</CI>
